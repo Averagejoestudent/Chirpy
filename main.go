@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -43,11 +44,48 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(http.StatusText(http.StatusOK)))
 }
 
-func handler(w http.ResponseWriter, r *http.Request){
+func respondWithError(w http.ResponseWriter, code int, msg string){
+	w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(code)
+	w.Write([]byte(fmt.Sprintf("{error : %s }",msg)))
+}
+func respondWithJSON(w http.ResponseWriter, code int, payload interface{}){
+	
+    dat, err := json.Marshal(payload)
+	if err != nil {
+			log.Printf("Error marshalling JSON: %s", err)
+			w.WriteHeader(500)
+			return
+	}
     w.Header().Set("Content-Type", "application/json")
-    w.WriteHeader(200)
+    w.WriteHeader(code)
     w.Write(dat)
 }
+
+
+
+func validHandler(w http.ResponseWriter, r *http.Request){
+	type datVals struct {
+        Body string `json:"body"`
+    }
+	decoder := json.NewDecoder(r.Body)
+	mydatVals := datVals{}
+	err := decoder.Decode(&mydatVals)
+	if err != nil{
+		respondWithError(w,500,"Something went wrong")
+	}
+    if len(mydatVals.Body) < 140{
+		type myValid struct{
+			Valid bool `json:"valid"`
+		}
+		passvalid := myValid{Valid: true}
+		respondWithJSON(w,200,passvalid)
+	}else{
+		respondWithError(w,400,"Chirp is too long")
+	}
+}
+
+
 
 
 
@@ -66,6 +104,7 @@ func main() {
 	mux.HandleFunc("GET /api/healthz", healthHandler)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
+	mux.HandleFunc("POST /api/validate_chirp", validHandler)
 
 	fmt.Println("Server starting on port 8080...")
 	err := server.ListenAndServe()
