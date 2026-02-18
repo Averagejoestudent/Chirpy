@@ -13,9 +13,10 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type apiConfig struct {
+type Config struct {
 	fileserverHits atomic.Int32
-	DB             *database.Queries
+	db             *database.Queries
+	platform		string
 }
 
 func main() {
@@ -29,8 +30,9 @@ func main() {
 	db, err := sql.Open("postgres", dbURL)
 	dbQueries := database.New(db)
 
-	apiCfg := apiConfig{
-		DB: dbQueries,
+	cfg := Config{
+		db: dbQueries,
+		platform: os.Getenv("PLATFORM"),
 	}
 
 	mux := http.NewServeMux()
@@ -39,12 +41,12 @@ func main() {
 		Handler: mux,
 	}
 	fileServerHandler := http.StripPrefix("/app", http.FileServer(http.Dir(filepath)))
-	mux.Handle("/app/", apiCfg.middlewareMetricsInc(fileServerHandler))
+	mux.Handle("/app/",cfg.middlewareMetricsInc(fileServerHandler))
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
-	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
-	mux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
+	mux.HandleFunc("GET /admin/metrics", cfg.handlerMetrics)
+	mux.HandleFunc("POST /admin/reset", cfg.handlerReset)
 	mux.HandleFunc("POST /api/validate_chirp", validHandler)
-	mux.HandleFunc("POST /api/users", userHandler)
+	mux.HandleFunc("POST /api/users", cfg.userHandler)
 
 	fmt.Println("Server starting on port 8080...")
 	err = server.ListenAndServe()
