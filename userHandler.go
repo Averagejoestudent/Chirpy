@@ -28,10 +28,15 @@ func (cfg *Config) userHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user, err := cfg.db.CreateUser(r.Context(), params.Email)
+	if err != nil {
+		respondWithError(w, 500, "Cannot create user Something went wrong")
+		return
+	}
 	respondWithJSON(w, 201, User{
-    ID:        user.ID,
-    CreatedAt: user.CreatedAt,
-    UpdatedAt: user.UpdatedAt,
-    Email:     user.Email,
+		ID:        user.ID,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+		Email:     user.Email,
 	})
+
 }

@@ -45,8 +45,10 @@ func main() {
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 	mux.HandleFunc("GET /admin/metrics", cfg.handlerMetrics)
 	mux.HandleFunc("POST /admin/reset", cfg.handlerReset)
-	mux.HandleFunc("POST /api/validate_chirp", validHandler)
+	mux.HandleFunc("POST /api/chirps", cfg.chripsHandler)
 	mux.HandleFunc("POST /api/users", cfg.userHandler)
+	mux.HandleFunc("GET /api/chirps", cfg.GetchripsHandler)
+	mux.HandleFunc("GET /api/chirps/{chirpID}", cfg.GetOnechripsHandler)
 
 	fmt.Println("Server starting on port 8080...")
 	err = server.ListenAndServe()
