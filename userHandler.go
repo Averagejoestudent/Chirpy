@@ -5,11 +5,14 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Averagejoestudent/Chirpy/internal/auth"
+	"github.com/Averagejoestudent/Chirpy/internal/database"
 	"github.com/google/uuid"
 )
 
-type emailVals struct {
-	Email string `json:"email"`
+type Params struct {
+	Email          string `json:"email"`
+	Password string `json:"password"`
 }
 
 type User struct {
@@ -21,13 +24,21 @@ type User struct {
 
 func (cfg *Config) userHandler(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
-	params := emailVals{}
+	params := Params{}
 	err := decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, 500, "Something went wrong")
 		return
 	}
-	user, err := cfg.db.CreateUser(r.Context(), params.Email)
+	hash, err := auth.HashPassword(params.Password)
+	if err != nil {
+		respondWithError(w, 500, "Cannot create hash Something went wrong")
+		return
+	}
+	user, err := cfg.db.CreateUser(r.Context(), database.CreateUserParams{
+		Email:          params.Email,
+		HashedPassword: hash,
+	})
 	if err != nil {
 		respondWithError(w, 500, "Cannot create user Something went wrong")
 		return
