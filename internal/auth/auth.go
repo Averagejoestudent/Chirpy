@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/alexedwards/argon2id"
@@ -47,16 +48,21 @@ func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (str
 	return ss, err
 }
 
-func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error){
+func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 
 	token, err := jwt.ParseWithClaims(tokenString, &MyCustomClaims{}, func(token *jwt.Token) (any, error) {
 		return []byte(tokenSecret), nil
 	})
 	if err != nil {
-		return uuid.Nil , err
+		return uuid.Nil, err
 	} else if claims, ok := token.Claims.(*MyCustomClaims); ok {
 		return uuid.Parse(claims.Subject)
 	} else {
-		return uuid.Nil, err	}
+		return uuid.Nil, err
+	}
 
+}
+
+func GetBearerToken(headers http.Header) (string, error) {
+	return "", nil
 }
