@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Averagejoestudent/Chirpy/internal/auth"
 	"github.com/Averagejoestudent/Chirpy/internal/database"
 	"github.com/google/uuid"
 )
@@ -19,14 +20,18 @@ type Chirp struct {
 
 type createChirpRequest struct {
 	Body   string `json:"body"`
-	UserID string `json:"user_id"`
+	
 }
 
 func (cfg *Config) chripsHandler(w http.ResponseWriter, r *http.Request) {
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, 401, "Invalid token")
+	}
 	var CleanedBody string
 	decoder := json.NewDecoder(r.Body)
 	params := createChirpRequest{}
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, 400, "Something went wrong")
 		return
@@ -36,9 +41,9 @@ func (cfg *Config) chripsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	CleanedBody = clean_message(params.Body)
-	userID, err := uuid.Parse(params.UserID)
+	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
 	if err != nil {
-		respondWithError(w, 400, "Invalid user_id")
+		respondWithError(w, 401, "Invalid user_id")
 		return
 	}
 	chirps, err := cfg.db.UserChirp(r.Context(), database.UserChirpParams{Body: CleanedBody, UserID: userID})
@@ -70,11 +75,11 @@ func (cfg *Config) GetchripsHandler(w http.ResponseWriter, r *http.Request) {
 func (cfg *Config) GetOnechripsHandler(w http.ResponseWriter, r *http.Request) {
 	chirp_id := r.PathValue("chirpID")
 	id, err := uuid.Parse(chirp_id)
-    if err != nil {
-        respondWithError(w, 404, "Invalid chirp ID format")
-        return
-    }
-	chirps , err := cfg.db.GetChirpsByID(r.Context(),id)
+	if err != nil {
+		respondWithError(w, 404, "Invalid chirp ID format")
+		return
+	}
+	chirps, err := cfg.db.GetChirpsByID(r.Context(), id)
 	if err != nil {
 		respondWithError(w, 404, "Cannot get Chrips")
 		return

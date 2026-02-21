@@ -1,7 +1,9 @@
 package auth
 
 import (
+	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/alexedwards/argon2id"
@@ -64,5 +66,21 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 }
 
 func GetBearerToken(headers http.Header) (string, error) {
-	return "", nil
+	const prefix = "Bearer "
+	myval := headers.Get("Authorization")
+	if myval == "" {
+		return "", errors.New("Header is empty")
+	}
+	if !strings.HasPrefix(myval, prefix) {
+		return "", errors.New("Header is Prefix is not as intended")
+	}
+	token_string := strings.TrimSpace(strings.TrimPrefix(myval, prefix))
+	if token_string == "" {
+		return "", errors.New("missing token")
+	}
+	if check := strings.Fields(token_string); len(check) != 1{
+		return "", errors.New("too many argument")
+	}
+	
+	return token_string, nil
 }
