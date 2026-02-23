@@ -2,11 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 )
 
-func validHandler(w http.ResponseWriter, r *http.Request) {
+func validHandler(r *http.Request) (string , error) {
 	type datVals struct {
 		Body string `json:"body"`
 	}
@@ -14,19 +15,12 @@ func validHandler(w http.ResponseWriter, r *http.Request) {
 	mydatVals := datVals{}
 	err := decoder.Decode(&mydatVals)
 	if err != nil {
-		respondWithError(w, 500, "Something went wrong")
+		 return "Something went wrong" , err
 	}
-	if len(mydatVals.Body) < 140 {
-		type myValid struct {
-			CleanedBody string `json:"cleaned_body"`
-		}
-		passvalid := myValid{
-			CleanedBody: clean_message(mydatVals.Body),
-		}
-		respondWithJSON(w, 200, passvalid)
-	} else {
-		respondWithError(w, 400, "Chirp is too long")
+	if len(mydatVals.Body) > 140{
+		return "Chirp is too long" , fmt.Errorf("too many charaacters")
 	}
+	return clean_message(mydatVals.Body) , nil
 }
 
 func clean_message(msg string) string {

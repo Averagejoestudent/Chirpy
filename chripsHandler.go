@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -18,29 +17,17 @@ type Chirp struct {
 	UserID    uuid.UUID `json:"user_id"`
 }
 
-type createChirpRequest struct {
-	Body   string `json:"body"`
-	
-}
 
 func (cfg *Config) chripsHandler(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
 		respondWithError(w, 401, "Invalid token")
 	}
-	var CleanedBody string
-	decoder := json.NewDecoder(r.Body)
-	params := createChirpRequest{}
-	err = decoder.Decode(&params)
+	CleanedBody , err := validHandler(r)
 	if err != nil {
-		respondWithError(w, 400, "Something went wrong")
+		respondWithError(w, 400, CleanedBody)
 		return
 	}
-	if len(params.Body) > 140 {
-		respondWithError(w, 400, "Chirp is too long")
-		return
-	}
-	CleanedBody = clean_message(params.Body)
 	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
 	if err != nil {
 		respondWithError(w, 401, "Invalid user_id")

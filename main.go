@@ -52,6 +52,8 @@ func main() {
 	mux.HandleFunc("GET /api/chirps", cfg.GetchripsHandler)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", cfg.GetOnechripsHandler)
 	mux.HandleFunc("POST /api/login", cfg.loginHandler)
+	mux.HandleFunc("POST /api/refresh", cfg.refreshHandler)
+	mux.HandleFunc("POST /api/revoke", cfg.revokeHandler)
 
 	fmt.Println("Server starting on port 8080...")
 	err = server.ListenAndServe()
