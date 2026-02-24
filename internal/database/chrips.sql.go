@@ -11,6 +11,21 @@ import (
 	"github.com/google/uuid"
 )
 
+const delChirpsByID = `-- name: DelChirpsByID :exec
+DELETE FROM chirps
+Where id = $1 AND user_id = $2
+`
+
+type DelChirpsByIDParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) DelChirpsByID(ctx context.Context, arg DelChirpsByIDParams) error {
+	_, err := q.db.ExecContext(ctx, delChirpsByID, arg.ID, arg.UserID)
+	return err
+}
+
 const getAllChirps = `-- name: GetAllChirps :many
 SELECT id, created_at, updated_at, body, user_id FROM chirps
 Order by created_at asc

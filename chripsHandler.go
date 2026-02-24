@@ -79,3 +79,42 @@ func (cfg *Config) GetOnechripsHandler(w http.ResponseWriter, r *http.Request) {
 		UserID:    chirps.UserID,
 	})
 }
+
+func (cfg *Config) DelchripsHandler(w http.ResponseWriter, r *http.Request) {
+
+	tokenString , err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, 401, "Incorrect token")
+		return
+	}
+	user_id , err := auth.ValidateJWT(tokenString,cfg.jwtSecret)
+	if err != nil {
+		respondWithError(w, 401, "server broke")
+		return
+	}
+	chirp_id := r.PathValue("chirpID")
+	id, err := uuid.Parse(chirp_id)
+	if err != nil {
+		respondWithError(w, 404, "Invalid chirp ID format")
+		return
+	}
+	chirps, err := cfg.db.GetChirpsByID(r.Context(), id)
+	if err != nil {
+		respondWithError(w, 404, "Cannot get Chrips")
+		return
+	}
+	if user_id != chirps.UserID{
+		respondWithError(w, 403, "Authentication issue")
+		return
+	}
+	err = cfg.db.DelChirpsByID(r.Context(),database.DelChirpsByIDParams{
+		ID: id,
+		UserID: user_id,
+	})
+	if err != nil {
+		respondWithError(w, 500, "Already deleted")
+		return
+	}
+	w.WriteHeader(204)
+
+}

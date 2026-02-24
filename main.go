@@ -17,7 +17,8 @@ type Config struct {
 	fileserverHits atomic.Int32
 	db             *database.Queries
 	platform       string
-	jwtSecret        string
+	jwtSecret      string
+	polkaSecret	   string
 }
 
 func main() {
@@ -35,6 +36,7 @@ func main() {
 		db:       dbQueries,
 		platform: os.Getenv("PLATFORM"),
 		jwtSecret:  os.Getenv("JWT_SECRT"),
+		polkaSecret: os.Getenv("POLKA_KEY"),
 	}
 
 	mux := http.NewServeMux()
@@ -54,6 +56,9 @@ func main() {
 	mux.HandleFunc("POST /api/login", cfg.loginHandler)
 	mux.HandleFunc("POST /api/refresh", cfg.refreshHandler)
 	mux.HandleFunc("POST /api/revoke", cfg.revokeHandler)
+	mux.HandleFunc("PUT /api/users", cfg.SetEmailPasswordHandler)
+	mux.HandleFunc("DELETE /api/chirps/{chirpID}", cfg.DelchripsHandler)
+	mux.HandleFunc("POST /api/polka/webhooks", cfg.ChirpyredWebhookhandler)
 
 	fmt.Println("Server starting on port 8080...")
 	err = server.ListenAndServe()

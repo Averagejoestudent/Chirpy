@@ -63,8 +63,9 @@ func (cfg *Config) loginHandler(w http.ResponseWriter, r *http.Request) {
 		Email        string    `json:"email"`
 		Token        string    `json:"token"`
 		RefreshToken string    `json:"refresh_token"`
+		IsChirpyRed bool      `json:"is_chirpy_red"`
 	}{
 		ID: user.ID, CreatedAt: user.CreatedAt, UpdatedAt: user.UpdatedAt,
-		Email: user.Email, Token: token, RefreshToken: refresh_token,
+		Email: user.Email, Token: token, RefreshToken: refresh_token, IsChirpyRed:user.IsChirpyRed,
 	})
 }
