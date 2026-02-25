@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/Averagejoestudent/Chirpy/internal/auth"
@@ -17,13 +18,12 @@ type Chirp struct {
 	UserID    uuid.UUID `json:"user_id"`
 }
 
-
 func (cfg *Config) chripsHandler(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
 		respondWithError(w, 401, "Invalid token")
 	}
-	CleanedBody , err := validHandler(r)
+	CleanedBody, err := validHandler(r)
 	if err != nil {
 		respondWithError(w, 400, CleanedBody)
 		return
@@ -48,9 +48,37 @@ func (cfg *Config) chripsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg *Config) GetchripsHandler(w http.ResponseWriter, r *http.Request) {
+	author := r.URL.Query().Get("author_id")
+	if author != "" {
+		id, err := uuid.Parse(author)
+		if err != nil {
+			respondWithError(w, 400, "Invalid author id")
+		}
+		chirps, err := cfg.db.GetChirpsByAuthor(r.Context(), id)
+		if err != nil {
+			respondWithError(w, 404, "Cannot get Chrips")
+			return
+		}
+		var list_of_chrips []Chirp
+		for _, chirp := range chirps {
+			list_of_chrips = append(list_of_chrips, Chirp(chirp))
+		}
+		respondWithJSON(w, 200, list_of_chrips)
+	}
+	s := r.URL.Query().Get("sort")
 	Allchrips, err := cfg.db.GetAllChirps(r.Context())
 	if err != nil {
 		respondWithError(w, 400, "Cannot get All Chrips")
+	}
+	if s == "asc" {
+		sort.Slice(Allchrips, func(i, j int) bool {
+			return Allchrips[i].CreatedAt.Before(Allchrips[j].CreatedAt)
+		})
+	}
+	if s == "desc" {
+		sort.Slice(Allchrips, func(i, j int) bool {
+			return Allchrips[i].CreatedAt.After(Allchrips[j].CreatedAt)
+		})
 	}
 	var list_of_chrips []Chirp
 	for _, chirp := range Allchrips {
@@ -82,12 +110,12 @@ func (cfg *Config) GetOnechripsHandler(w http.ResponseWriter, r *http.Request) {
 
 func (cfg *Config) DelchripsHandler(w http.ResponseWriter, r *http.Request) {
 
-	tokenString , err := auth.GetBearerToken(r.Header)
+	tokenString, err := auth.GetBearerToken(r.Header)
 	if err != nil {
 		respondWithError(w, 401, "Incorrect token")
 		return
 	}
-	user_id , err := auth.ValidateJWT(tokenString,cfg.jwtSecret)
+	user_id, err := auth.ValidateJWT(tokenString, cfg.jwtSecret)
 	if err != nil {
 		respondWithError(w, 401, "server broke")
 		return
@@ -103,12 +131,12 @@ func (cfg *Config) DelchripsHandler(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, 404, "Cannot get Chrips")
 		return
 	}
-	if user_id != chirps.UserID{
+	if user_id != chirps.UserID {
 		respondWithError(w, 403, "Authentication issue")
 		return
 	}
-	err = cfg.db.DelChirpsByID(r.Context(),database.DelChirpsByIDParams{
-		ID: id,
+	err = cfg.db.DelChirpsByID(r.Context(), database.DelChirpsByIDParams{
+		ID:     id,
 		UserID: user_id,
 	})
 	if err != nil {
